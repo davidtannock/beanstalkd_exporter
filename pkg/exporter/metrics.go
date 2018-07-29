@@ -18,7 +18,7 @@ var systemStatsHelp = map[string]string{
 	"cmd-reserve":              "The cumulative number of reserve commands.",
 	"cmd-reserve-with-timeout": "The cumulative number of reserve with a timeout commands.",
 	"cmd-stats":                "The cumulative number of stats commands.",
-	"cmd-stats-job":            "cmd-stats-job",
+	"cmd-stats-job":            "The cumulative number of stats-job commands.",
 	"cmd-stats-tube":           "The cumulative number of stats-tube commands.",
 	"cmd-touch":                "The cumulative number of touch commands.",
 	"cmd-use":                  "The cumulative number of use commands.",
