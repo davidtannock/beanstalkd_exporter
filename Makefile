@@ -8,6 +8,9 @@ DEP          := $(FIRST_GOPATH)/bin/dep
 pkgs          = ./...
 BINARY_NAME   = beanstalkd_exporter
 
+DOCKER_IMAGE_NAME ?= beanstalkd-exporter
+DOCKER_IMAGE_TAG  ?= $(subst /,-,$(shell git rev-parse --abbrev-ref HEAD))
+
 .PHONY: all
 all: style staticcheck dep clean build
 
@@ -56,3 +59,7 @@ $(STATICCHECK):
 $(DEP):
 	@echo ">> installing dep"
 	test -f $(DEP) || curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+
+.PHONE: docker
+docker:
+	docker build -t "$(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG)" .
