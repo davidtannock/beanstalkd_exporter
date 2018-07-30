@@ -60,6 +60,6 @@ $(DEP):
 	@echo ">> installing dep"
 	test -f $(DEP) || curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 
-.PHONE: docker
+.PHONY: docker
 docker:
 	docker build -t "$(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG)" .
