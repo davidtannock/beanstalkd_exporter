@@ -1,6 +1,7 @@
 package exporter
 
 import (
+	"fmt"
 	"strconv"
 	"sync"
 
@@ -13,6 +14,11 @@ const (
 	namespace = "beanstalkd"
 )
 
+type beanstalkdServer interface {
+	FetchStats() (beanstalkd.ServerStats, error)
+	FetchTubesStats(map[string]bool) (beanstalkd.ManyTubeStats, error)
+}
+
 // CollectorOpts contains the options for configuring the beanstalkd collector.
 type CollectorOpts struct {
 	SystemMetrics []string
@@ -23,10 +29,11 @@ type CollectorOpts struct {
 // BeanstalkdCollector collects metrics from a beanstalkd server
 // for consumption by Prometheus
 type BeanstalkdCollector struct {
-	beanstalkd *beanstalkd.Server
+	beanstalkd beanstalkdServer
 	mutex      sync.RWMutex
 
-	opts CollectorOpts
+	opts   CollectorOpts
+	logger log.Logger
 
 	systemMetrics map[string]prometheus.Gauge
 	tubesMetrics  map[string]*prometheus.GaugeVec
@@ -35,25 +42,28 @@ type BeanstalkdCollector struct {
 	up           prometheus.Gauge
 }
 
-func (opts *CollectorOpts) validate() {
+func (opts *CollectorOpts) validate() (err error) {
 	// Panic on any invalid system metrics.
 	for _, m := range opts.SystemMetrics {
 		if _, ok := systemMetricsToStats[m]; !ok {
-			log.Fatalf("Unknown system metric: %v", m)
+			err = fmt.Errorf("Unknown system metric: %v", m)
+			return
 		}
 	}
 
 	// Panic on any invalid tube metrics.
 	for _, m := range opts.TubeMetrics {
 		if _, ok := tubeMetricsToStats[m]; !ok {
-			log.Fatalf("Unknown tube metric: %v", m)
+			err = fmt.Errorf("Unknown tube metric: %v", m)
+			return
 		}
 	}
 
 	// If there are specific tube metrics, there
 	// must be at least one tube.
 	if len(opts.TubeMetrics) > 0 && len(opts.Tubes) == 0 {
-		log.Fatal("Tube metrics without tubes is not supported")
+		err = fmt.Errorf("Tube metrics without tubes is not supported")
+		return
 	}
 
 	// If there are no system metrics, fetch all of them.
@@ -73,11 +83,17 @@ func (opts *CollectorOpts) validate() {
 		}
 		opts.TubeMetrics = tubeMetrics
 	}
+
+	err = nil
+	return
 }
 
 // NewBeanstalkdCollector returns an initialised BeanstalkdCollector
-func NewBeanstalkdCollector(beanstalkd *beanstalkd.Server, opts CollectorOpts) *BeanstalkdCollector {
-	opts.validate()
+func NewBeanstalkdCollector(beanstalkd beanstalkdServer, opts CollectorOpts, logger log.Logger) (*BeanstalkdCollector, error) {
+	err := opts.validate()
+	if err != nil {
+		return nil, err
+	}
 
 	systemMetrics := make(map[string]prometheus.Gauge, len(opts.SystemMetrics))
 	for _, metric := range opts.SystemMetrics {
@@ -106,6 +122,7 @@ func NewBeanstalkdCollector(beanstalkd *beanstalkd.Server, opts CollectorOpts) *
 	return &BeanstalkdCollector{
 		beanstalkd:    beanstalkd,
 		opts:          opts,
+		logger:        logger,
 		systemMetrics: systemMetrics,
 		tubesMetrics:  tubesMetrics,
 		totalScrapes: prometheus.NewCounter(prometheus.CounterOpts{
@@ -118,20 +135,20 @@ func NewBeanstalkdCollector(beanstalkd *beanstalkd.Server, opts CollectorOpts) *
 			Name:      "up",
 			Help:      "Current health status of the backend (1 = UP, 0 = DOWN).",
 		}),
-	}
+	}, nil
 }
 
 // Describe implements the prometheus.Collector interface
 // to describe the collected metrics.
 func (b *BeanstalkdCollector) Describe(ch chan<- *prometheus.Desc) {
+	b.up.Describe(ch)
+	b.totalScrapes.Describe(ch)
 	for _, m := range b.systemMetrics {
 		m.Describe(ch)
 	}
 	for _, m := range b.tubesMetrics {
 		m.Describe(ch)
 	}
-	b.up.Describe(ch)
-	b.totalScrapes.Describe(ch)
 }
 
 // Collect implements the prometheus.Collector interface
@@ -165,7 +182,7 @@ func (b *BeanstalkdCollector) scrape() {
 	var err error
 	defer func() {
 		if err != nil {
-			log.Errorf("Error scraping beanstalkd: %v", err)
+			b.logger.Errorf("Error scraping beanstalkd: %v", err)
 			b.up.Set(0)
 		}
 	}()

@@ -10,6 +10,10 @@ import (
 	"github.com/prometheus/common/log"
 )
 
+var (
+	metricsPath string
+)
+
 // Opts contains the options for configuring the http server.
 type Opts struct {
 	ListenAddress string
@@ -23,20 +27,28 @@ type Opts struct {
 
 // ListenAndServe initialises a http server and starts listening
 // for http requests.
-func ListenAndServe(opts Opts) {
-	beanstalkd := beanstalkd.NewServer(opts.BeanstalkdAddress)
+func ListenAndServe(opts Opts, logger log.Logger) {
+	metricsPath = opts.MetricsPath
 
-	collector := exporter.NewBeanstalkdCollector(beanstalkd, exporter.CollectorOpts{
-		SystemMetrics: opts.BeanstalkdSystemMetrics,
-		Tubes:         opts.BeanstalkdTubes,
-		TubeMetrics:   opts.BeanstalkdTubeMetrics,
-	})
+	collector, err := exporter.NewBeanstalkdCollector(
+		beanstalkd.NewServer(opts.BeanstalkdAddress),
+		exporter.CollectorOpts{
+			SystemMetrics: opts.BeanstalkdSystemMetrics,
+			Tubes:         opts.BeanstalkdTubes,
+			TubeMetrics:   opts.BeanstalkdTubeMetrics,
+		},
+		logger,
+	)
+	if err != nil {
+		logger.Fatal(err)
+	}
+
 	prometheus.MustRegister(collector)
 
-	log.Infoln("Listening on", opts.ListenAddress)
+	logger.Infoln("Listening on", opts.ListenAddress)
 	http.HandleFunc("/", index)
 	http.Handle(opts.MetricsPath, promhttp.Handler())
-	log.Fatal(http.ListenAndServe(opts.ListenAddress, nil))
+	logger.Fatal(http.ListenAndServe(opts.ListenAddress, nil))
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
@@ -46,7 +58,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 	</head>
 	<body>
 		<h1>Beanstalkd Exporter</h1>
-		<p><a href='/metrics'>Metrics</a></p>
+		<p><a href='` + metricsPath + `'>Metrics</a></p>
 	</body>
 </html>`))
 }

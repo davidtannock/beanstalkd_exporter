@@ -141,6 +141,7 @@
     "github.com/kr/beanstalk",
     "github.com/prometheus/client_golang/prometheus",
     "github.com/prometheus/client_golang/prometheus/promhttp",
+    "github.com/prometheus/client_model/go",
     "github.com/prometheus/common/log",
     "gopkg.in/alecthomas/kingpin.v2",
   ]

@@ -1,5 +1,6 @@
 GO           ?= go
 GOFMT        ?= $(GO)fmt
+GOTEST        = $(GO) test
 GOBUILD       = $(GO) build
 GOCLEAN       = $(GO) clean
 FIRST_GOPATH := $(firstword $(subst :, ,$(shell $(GO) env GOPATH)))
@@ -12,7 +13,7 @@ DOCKER_IMAGE_NAME ?= beanstalkd-exporter
 DOCKER_IMAGE_TAG  ?= $(subst /,-,$(shell git rev-parse --abbrev-ref HEAD))
 
 .PHONY: all
-all: style staticcheck dep clean build
+all: style staticcheck dep clean test build
 
 .PHONY: style
 style:
@@ -38,6 +39,11 @@ staticcheck: $(STATICCHECK)
 dep: $(DEP)
 	@echo ">> running dependency check"
 	$(DEP) ensure
+
+.PHONY: test
+test:
+	@echo ">> running tests"
+	$(GOTEST) ./...
 
 .PHONY: build
 build:
