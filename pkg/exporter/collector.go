@@ -14,7 +14,8 @@ const (
 	namespace = "beanstalkd"
 )
 
-type beanstalkdServer interface {
+// BeanstalkdServer is the minimum interface required by a BeanstalkdCollector
+type BeanstalkdServer interface {
 	FetchStats() (beanstalkd.ServerStats, error)
 	FetchTubesStats(map[string]bool) (beanstalkd.ManyTubeStats, error)
 }
@@ -29,7 +30,7 @@ type CollectorOpts struct {
 // BeanstalkdCollector collects metrics from a beanstalkd server
 // for consumption by Prometheus
 type BeanstalkdCollector struct {
-	beanstalkd beanstalkdServer
+	beanstalkd BeanstalkdServer
 	mutex      sync.RWMutex
 
 	opts   CollectorOpts
@@ -43,7 +44,7 @@ type BeanstalkdCollector struct {
 }
 
 func (opts *CollectorOpts) validate() (err error) {
-	// Panic on any invalid system metrics.
+	// Error on any invalid system metrics.
 	for _, m := range opts.SystemMetrics {
 		if _, ok := systemMetricsToStats[m]; !ok {
 			err = fmt.Errorf("Unknown system metric: %v", m)
@@ -51,7 +52,7 @@ func (opts *CollectorOpts) validate() (err error) {
 		}
 	}
 
-	// Panic on any invalid tube metrics.
+	// Error on any invalid tube metrics.
 	for _, m := range opts.TubeMetrics {
 		if _, ok := tubeMetricsToStats[m]; !ok {
 			err = fmt.Errorf("Unknown tube metric: %v", m)
@@ -89,7 +90,7 @@ func (opts *CollectorOpts) validate() (err error) {
 }
 
 // NewBeanstalkdCollector returns an initialised BeanstalkdCollector
-func NewBeanstalkdCollector(beanstalkd beanstalkdServer, opts CollectorOpts, logger log.Logger) (*BeanstalkdCollector, error) {
+func NewBeanstalkdCollector(beanstalkd BeanstalkdServer, opts CollectorOpts, logger log.Logger) (*BeanstalkdCollector, error) {
 	err := opts.validate()
 	if err != nil {
 		return nil, err
