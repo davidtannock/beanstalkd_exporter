@@ -1,3 +1,11 @@
+[![Go Report Card](https://goreportcard.com/badge/github.com/davidtannock/beanstalkd_exporter)][goreportcard]
+[![Code Climate](https://codeclimate.com/github/davidtannock/beanstalkd_exporter/badges/gpa.svg)][codeclimate]
+[![Build Status](https://travis-ci.org/davidtannock/beanstalkd_exporter.png?branch=master)][travisci]
+
+[goreportcard]: https://goreportcard.com/report/github.com/davidtannock/beanstalkd_exporter
+[codeclimate]: https://codeclimate.com/github/davidtannock/beanstalkd_exporter
+[travisci]: https://travis-ci.org/davidtannock/beanstalkd_exporter
+
 # Beanstalkd Exporter for Prometheus
 
 This is a simple server that scrapes [beanstalkd][beanstalkd] stats and exports them via HTTP
@@ -99,12 +107,6 @@ The full list of metrics is available on [this page][metrics].
 
 ## Development
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/davidtannock/beanstalkd_exporter)][goreportcard]
-[![Code Climate](https://codeclimate.com/github/davidtannock/beanstalkd_exporter/badges/gpa.svg)][codeclimate]
-
-[goreportcard]: https://goreportcard.com/report/github.com/davidtannock/beanstalkd_exporter
-[codeclimate]: https://codeclimate.com/github/davidtannock/beanstalkd_exporter
-
 ### Building
 
 ```bash
@@ -113,13 +115,9 @@ $ make build
 
 ### Testing
 
-[![Build Status](https://travis-ci.org/davidtannock/beanstalkd_exporter.png?branch=master)][travisci]
-
 ```bash
 $ make test
 ```
-
-[travisci]: https://travis-ci.org/davidtannock/beanstalkd_exporter
 
 ## License
 
