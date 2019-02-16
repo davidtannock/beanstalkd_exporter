@@ -103,7 +103,7 @@ The metrics collected from beanstalkd can be filtered using the `--beanstalkd.sy
 ```bash
 $ ./beanstalkd_exporter \
     --beanstalkd.systemMetrics=current_jobs_urgent_count,current_jobs_ready_count \
-    --beanstalkd.allTubes \
+    --beanstalkd.tubes=default \
     --beanstalkd.tubeMetrics=tube_current_jobs_ready_count
 ```
 
