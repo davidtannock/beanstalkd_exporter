@@ -21,6 +21,7 @@ type Opts struct {
 
 	BeanstalkdAddress       string
 	BeanstalkdSystemMetrics []string
+	BeanstalkdAllTubes      bool
 	BeanstalkdTubes         []string
 	BeanstalkdTubeMetrics   []string
 }
@@ -30,11 +31,18 @@ type Opts struct {
 func ListenAndServe(opts Opts, logger log.Logger) {
 	metricsPath = opts.MetricsPath
 
+	// Fetching all tubes overrides specific tubes.
+	tubes := opts.BeanstalkdTubes
+	if opts.BeanstalkdAllTubes {
+		tubes = nil
+	}
+
 	collector, err := exporter.NewBeanstalkdCollector(
 		beanstalkd.NewServer(opts.BeanstalkdAddress),
 		exporter.CollectorOpts{
 			SystemMetrics: opts.BeanstalkdSystemMetrics,
-			Tubes:         opts.BeanstalkdTubes,
+			AllTubes:      opts.BeanstalkdAllTubes,
+			Tubes:         tubes,
 			TubeMetrics:   opts.BeanstalkdTubeMetrics,
 		},
 		logger,

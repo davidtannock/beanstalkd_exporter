@@ -47,6 +47,16 @@ func NewServer(address string) *Server {
 	}
 }
 
+// ListTubes returns the list of tubes from beanstalkd.
+func (s *Server) ListTubes() ([]string, error) {
+	c, err := s.connect()
+	if err != nil {
+		return nil, err
+	}
+	tubes, err := c.ListTubes()
+	return tubes, err
+}
+
 // FetchStats returns the server stats from beanstalkd.
 func (s *Server) FetchStats() (ServerStats, error) {
 	c, err := s.connect()

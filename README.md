@@ -83,7 +83,15 @@ $ curl http://localhost:8080/metrics
 Without passing any flags, only the system-level stats will be collected from beanstalkd
 (i.e. tube-level stats will not be collected).
 
-To collect tube-level stats, you must set one or more tube names with the `--beanstalkd.tubes` flag,
+To collect tube-level stats, you must use either the `--beanstalkd.allTubes` or `--beanstalkd.tubes` flag.
+
+`--beanstalkd.allTubes` will collect metrics for all tubes.
+
+```bash
+$ ./beanstalkd_exporter --beanstalkd.allTubes
+```
+
+`--beanstalkd.tubes` will collect metrics for one or more specific tubes.
 
 ```bash
 $ ./beanstalkd_exporter --beanstalkd.tubes=default,anotherTube
@@ -95,7 +103,7 @@ The metrics collected from beanstalkd can be filtered using the `--beanstalkd.sy
 ```bash
 $ ./beanstalkd_exporter \
     --beanstalkd.systemMetrics=current_jobs_urgent_count,current_jobs_ready_count \
-    --beanstalkd.tubes=default \
+    --beanstalkd.allTubes \
     --beanstalkd.tubeMetrics=tube_current_jobs_ready_count
 ```
 

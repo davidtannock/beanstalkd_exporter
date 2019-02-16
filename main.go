@@ -15,6 +15,7 @@ type options struct {
 	metricsPath             *string
 	beanstalkdAddress       *string
 	beanstalkdSystemMetrics *string
+	beanstalkdAllTubes      *bool
 	beanstalkdTubes         *string
 	beanstalkdTubeMetrics   *string
 }
@@ -42,9 +43,14 @@ func initApplication(app *kingpin.Application) *options {
 		"Comma separated beanstalkd system metrics to collect. All metrics will be collected if this is not set.",
 	).Default("").String()
 
+	opts.beanstalkdAllTubes = app.Flag(
+		"beanstalkd.allTubes",
+		"Collect metrics for all tubes. Default false.",
+	).Default("false").Bool()
+
 	opts.beanstalkdTubes = app.Flag(
 		"beanstalkd.tubes",
-		"Comma separated beanstalkd tubes for which to collect metrics. No tube metrics will be collected if this is not set.",
+		"Comma separated beanstalkd tubes for which to collect metrics. Ignored when \"beanstalkd.allTubes\" is true.",
 	).Default("").String()
 
 	opts.beanstalkdTubeMetrics = app.Flag(
@@ -69,12 +75,19 @@ func main() {
 
 	logger.Infof("Starting beanstalkd_exporter")
 
+	// Fetching all tubes overrides specific tubes.
+	beanstalkdTubes := *opts.beanstalkdTubes
+	if *opts.beanstalkdAllTubes {
+		beanstalkdTubes = ""
+	}
+
 	sOpts := server.Opts{
 		ListenAddress:           *opts.listenAddress,
 		MetricsPath:             *opts.metricsPath,
 		BeanstalkdAddress:       *opts.beanstalkdAddress,
 		BeanstalkdSystemMetrics: toStringArray(*opts.beanstalkdSystemMetrics),
-		BeanstalkdTubes:         toStringArray(*opts.beanstalkdTubes),
+		BeanstalkdAllTubes:      *opts.beanstalkdAllTubes,
+		BeanstalkdTubes:         toStringArray(beanstalkdTubes),
 		BeanstalkdTubeMetrics:   toStringArray(*opts.beanstalkdTubeMetrics),
 	}
 	server.ListenAndServe(sOpts, logger)
