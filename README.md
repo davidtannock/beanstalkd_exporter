@@ -59,7 +59,7 @@ $ ./beanstalkd_exporter
 Fetch the metrics for Prometheus.
 
 ```bash
-$ curl http://localhost:8080/metrics
+$ curl -s http://localhost:8080/metrics
 ```
 
 ### Failed Scrapes
@@ -71,9 +71,9 @@ then find the `beanstalkd_up` value.
 
 ```bash
 $ docker stop beanstalkd
-$ curl http://localhost:8080/metrics
+$ curl -s http://localhost:8080/metrics | grep beanstalkd_up
 $ docker start beanstalkd
-$ curl http://localhost:8080/metrics
+$ curl -s http://localhost:8080/metrics | grep beanstalkd_up
 ```
 
 [failedscrapes]: https://prometheus.io/docs/instrumenting/writing_exporters/#failed-scrapes
