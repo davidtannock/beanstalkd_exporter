@@ -49,7 +49,7 @@ func (opts *CollectorOpts) validate() (err error) {
 	// Error on any invalid system metrics.
 	for _, m := range opts.SystemMetrics {
 		if _, ok := systemMetricsToStats[m]; !ok {
-			err = fmt.Errorf("Unknown system metric: %v", m)
+			err = fmt.Errorf("unknown system metric: %v", m)
 			return
 		}
 	}
@@ -57,7 +57,7 @@ func (opts *CollectorOpts) validate() (err error) {
 	// Error on any invalid tube metrics.
 	for _, m := range opts.TubeMetrics {
 		if _, ok := tubeMetricsToStats[m]; !ok {
-			err = fmt.Errorf("Unknown tube metric: %v", m)
+			err = fmt.Errorf("unknown tube metric: %v", m)
 			return
 		}
 	}
@@ -65,7 +65,7 @@ func (opts *CollectorOpts) validate() (err error) {
 	// If there are specific tube metrics, there
 	// must be at least one tube.
 	if len(opts.TubeMetrics) > 0 && len(opts.Tubes) == 0 && !opts.AllTubes {
-		err = fmt.Errorf("Tube metrics without tubes is not supported")
+		err = fmt.Errorf("tube metrics without tubes is not supported")
 		return
 	}
 

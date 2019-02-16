@@ -315,7 +315,6 @@ func TestConnect(t *testing.T) {
 
 type mockConnection struct {
 	stats              map[string]string
-	statsConnError     error
 	statsError         error
 	statsCallCount     int
 	tubes              []string

@@ -33,21 +33,21 @@ func TestValidateErrors(t *testing.T) {
 		// We expect an error when there's an unknown system metric.
 		{
 			opts:          CollectorOpts{SystemMetrics: []string{"does_not_exist"}},
-			expectedError: "Unknown system metric: does_not_exist",
+			expectedError: "unknown system metric: does_not_exist",
 		},
 		// We expect an error when there's an unknown tube metric.
 		{
 			opts:          CollectorOpts{TubeMetrics: []string{"tube_no_exist"}},
-			expectedError: "Unknown tube metric: tube_no_exist",
+			expectedError: "unknown tube metric: tube_no_exist",
 		},
 		// If specific tubes metrics are requested, we must have tubes.
 		{
 			opts:          CollectorOpts{Tubes: []string{}, TubeMetrics: []string{"tube_current_jobs_ready_count"}},
-			expectedError: "Tube metrics without tubes is not supported",
+			expectedError: "tube metrics without tubes is not supported",
 		},
 		{
 			opts:          CollectorOpts{AllTubes: false, TubeMetrics: []string{"tube_current_jobs_ready_count"}},
-			expectedError: "Tube metrics without tubes is not supported",
+			expectedError: "tube metrics without tubes is not supported",
 		},
 	}
 
@@ -116,7 +116,7 @@ func TestNewBeanstalkdCollector(t *testing.T) {
 		{
 			beanstalkd:                  beanstalkd.NewServer("localhost:11300"),
 			opts:                        CollectorOpts{SystemMetrics: []string{"does_not_exist"}},
-			expectedError:               fmt.Errorf("Unknown system metric: does_not_exist"),
+			expectedError:               fmt.Errorf("unknown system metric: does_not_exist"),
 			expectedSystemMetricsLength: 0,
 			expectedTubeMetricsLength:   0,
 		},
