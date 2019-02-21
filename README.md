@@ -59,7 +59,7 @@ $ ./beanstalkd_exporter
 Fetch the metrics for Prometheus.
 
 ```bash
-$ curl http://localhost:8080/metrics
+$ curl -s http://localhost:8080/metrics
 ```
 
 ### Failed Scrapes
@@ -71,9 +71,9 @@ then find the `beanstalkd_up` value.
 
 ```bash
 $ docker stop beanstalkd
-$ curl http://localhost:8080/metrics
+$ curl -s http://localhost:8080/metrics | grep beanstalkd_up
 $ docker start beanstalkd
-$ curl http://localhost:8080/metrics
+$ curl -s http://localhost:8080/metrics | grep beanstalkd_up
 ```
 
 [failedscrapes]: https://prometheus.io/docs/instrumenting/writing_exporters/#failed-scrapes
@@ -83,7 +83,15 @@ $ curl http://localhost:8080/metrics
 Without passing any flags, only the system-level stats will be collected from beanstalkd
 (i.e. tube-level stats will not be collected).
 
-To collect tube-level stats, you must set one or more tube names with the `--beanstalkd.tubes` flag,
+To collect tube-level stats, you must use either the `--beanstalkd.allTubes` or `--beanstalkd.tubes` flag.
+
+`--beanstalkd.allTubes` will collect metrics for all tubes.
+
+```bash
+$ ./beanstalkd_exporter --beanstalkd.allTubes
+```
+
+`--beanstalkd.tubes` will collect metrics for one or more specific tubes.
 
 ```bash
 $ ./beanstalkd_exporter --beanstalkd.tubes=default,anotherTube

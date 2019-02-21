@@ -16,6 +16,7 @@ const (
 
 // BeanstalkdServer is the minimum interface required by a BeanstalkdCollector
 type BeanstalkdServer interface {
+	ListTubes() ([]string, error)
 	FetchStats() (beanstalkd.ServerStats, error)
 	FetchTubesStats(map[string]bool) (beanstalkd.ManyTubeStats, error)
 }
@@ -23,6 +24,7 @@ type BeanstalkdServer interface {
 // CollectorOpts contains the options for configuring the beanstalkd collector.
 type CollectorOpts struct {
 	SystemMetrics []string
+	AllTubes      bool
 	Tubes         []string
 	TubeMetrics   []string
 }
@@ -47,7 +49,7 @@ func (opts *CollectorOpts) validate() (err error) {
 	// Error on any invalid system metrics.
 	for _, m := range opts.SystemMetrics {
 		if _, ok := systemMetricsToStats[m]; !ok {
-			err = fmt.Errorf("Unknown system metric: %v", m)
+			err = fmt.Errorf("unknown system metric: %v", m)
 			return
 		}
 	}
@@ -55,15 +57,15 @@ func (opts *CollectorOpts) validate() (err error) {
 	// Error on any invalid tube metrics.
 	for _, m := range opts.TubeMetrics {
 		if _, ok := tubeMetricsToStats[m]; !ok {
-			err = fmt.Errorf("Unknown tube metric: %v", m)
+			err = fmt.Errorf("unknown tube metric: %v", m)
 			return
 		}
 	}
 
 	// If there are specific tube metrics, there
 	// must be at least one tube.
-	if len(opts.TubeMetrics) > 0 && len(opts.Tubes) == 0 {
-		err = fmt.Errorf("Tube metrics without tubes is not supported")
+	if len(opts.TubeMetrics) > 0 && len(opts.Tubes) == 0 && !opts.AllTubes {
+		err = fmt.Errorf("tube metrics without tubes is not supported")
 		return
 	}
 
@@ -76,8 +78,8 @@ func (opts *CollectorOpts) validate() (err error) {
 		opts.SystemMetrics = systemMetrics
 	}
 
-	// If there are specific tubes but no metrics, fetch all of them.
-	if len(opts.Tubes) > 0 && len(opts.TubeMetrics) == 0 {
+	// If there are tubes but no metrics, fetch all of them.
+	if (opts.AllTubes || len(opts.Tubes) > 0) && len(opts.TubeMetrics) == 0 {
 		var tubeMetrics []string
 		for m := range tubeMetricsToStats {
 			tubeMetrics = append(tubeMetrics, m)
@@ -96,6 +98,11 @@ func NewBeanstalkdCollector(beanstalkd BeanstalkdServer, opts CollectorOpts, log
 		return nil, err
 	}
 
+	// If we're describing all tubes in beanstalkd, we'll fetch them later.
+	if opts.AllTubes {
+		opts.Tubes = nil
+	}
+
 	systemMetrics := make(map[string]prometheus.Gauge, len(opts.SystemMetrics))
 	for _, metric := range opts.SystemMetrics {
 		stat := systemMetricsToStats[metric]
@@ -107,7 +114,7 @@ func NewBeanstalkdCollector(beanstalkd BeanstalkdServer, opts CollectorOpts, log
 	}
 
 	var tubesMetrics map[string]*prometheus.GaugeVec
-	if len(opts.Tubes) > 0 {
+	if opts.AllTubes || len(opts.Tubes) > 0 {
 		tubeLabels := []string{"tube"}
 		tubesMetrics = make(map[string]*prometheus.GaugeVec, len(opts.TubeMetrics))
 		for _, metric := range opts.TubeMetrics {
@@ -208,11 +215,18 @@ func (b *BeanstalkdCollector) scrape() {
 	}
 
 	// Fetch the tubes stats from beanstalkd.
-	if len(b.opts.Tubes) == 0 {
+	tubeNames := b.opts.Tubes
+	if b.opts.AllTubes {
+		tubeNames, err = b.beanstalkd.ListTubes()
+		if err != nil {
+			return
+		}
+	}
+	if len(tubeNames) == 0 {
 		return
 	}
 	tubes := make(map[string]bool)
-	for _, tube := range b.opts.Tubes {
+	for _, tube := range tubeNames {
 		tubes[tube] = true
 	}
 	manyTubesStats, err := b.beanstalkd.FetchTubesStats(tubes)

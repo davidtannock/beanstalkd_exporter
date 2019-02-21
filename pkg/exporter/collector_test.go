@@ -33,17 +33,21 @@ func TestValidateErrors(t *testing.T) {
 		// We expect an error when there's an unknown system metric.
 		{
 			opts:          CollectorOpts{SystemMetrics: []string{"does_not_exist"}},
-			expectedError: "Unknown system metric: does_not_exist",
+			expectedError: "unknown system metric: does_not_exist",
 		},
 		// We expect an error when there's an unknown tube metric.
 		{
 			opts:          CollectorOpts{TubeMetrics: []string{"tube_no_exist"}},
-			expectedError: "Unknown tube metric: tube_no_exist",
+			expectedError: "unknown tube metric: tube_no_exist",
 		},
 		// If specific tubes metrics are requested, we must have tubes.
 		{
 			opts:          CollectorOpts{Tubes: []string{}, TubeMetrics: []string{"tube_current_jobs_ready_count"}},
-			expectedError: "Tube metrics without tubes is not supported",
+			expectedError: "tube metrics without tubes is not supported",
+		},
+		{
+			opts:          CollectorOpts{AllTubes: false, TubeMetrics: []string{"tube_current_jobs_ready_count"}},
+			expectedError: "tube metrics without tubes is not supported",
 		},
 	}
 
@@ -76,21 +80,26 @@ func TestValidateDefaultFetchAllSystemMetrics(t *testing.T) {
 }
 
 func TestValidateDefaultFetchAllTubeMetrics(t *testing.T) {
-	opts := CollectorOpts{Tubes: []string{"default"}}
-	err := opts.validate()
-	if err != nil {
-		t.Errorf("expected nil error, actual %v", err)
+	tests := []CollectorOpts{
+		{Tubes: []string{"default"}},
+		{AllTubes: true},
 	}
-	if len(opts.TubeMetrics) != len(tubeMetricsToStats) {
-		t.Errorf(
-			"expected tube metrics length to be %v, actual %v",
-			len(tubeMetricsToStats),
-			len(opts.TubeMetrics),
-		)
-	}
-	for _, m := range opts.TubeMetrics {
-		if _, found := tubeMetricsToStats[m]; !found {
-			t.Errorf("unexpected tube metric: %v", m)
+	for _, opts := range tests {
+		err := opts.validate()
+		if err != nil {
+			t.Errorf("expected nil error, actual %v", err)
+		}
+		if len(opts.TubeMetrics) != len(tubeMetricsToStats) {
+			t.Errorf(
+				"expected tube metrics length to be %v, actual %v",
+				len(tubeMetricsToStats),
+				len(opts.TubeMetrics),
+			)
+		}
+		for _, m := range opts.TubeMetrics {
+			if _, found := tubeMetricsToStats[m]; !found {
+				t.Errorf("unexpected tube metric: %v", m)
+			}
 		}
 	}
 }
@@ -107,7 +116,7 @@ func TestNewBeanstalkdCollector(t *testing.T) {
 		{
 			beanstalkd:                  beanstalkd.NewServer("localhost:11300"),
 			opts:                        CollectorOpts{SystemMetrics: []string{"does_not_exist"}},
-			expectedError:               fmt.Errorf("Unknown system metric: does_not_exist"),
+			expectedError:               fmt.Errorf("unknown system metric: does_not_exist"),
 			expectedSystemMetricsLength: 0,
 			expectedTubeMetricsLength:   0,
 		},
@@ -122,6 +131,13 @@ func TestNewBeanstalkdCollector(t *testing.T) {
 		{
 			beanstalkd:                  beanstalkd.NewServer("localhost:11300"),
 			opts:                        CollectorOpts{Tubes: []string{"default"}},
+			expectedError:               nil,
+			expectedSystemMetricsLength: len(systemMetricsToStats),
+			expectedTubeMetricsLength:   len(tubeMetricsToStats),
+		},
+		{
+			beanstalkd:                  beanstalkd.NewServer("localhost:11300"),
+			opts:                        CollectorOpts{AllTubes: true},
 			expectedError:               nil,
 			expectedSystemMetricsLength: len(systemMetricsToStats),
 			expectedTubeMetricsLength:   len(tubeMetricsToStats),
@@ -153,45 +169,64 @@ func TestNewBeanstalkdCollector(t *testing.T) {
 	}
 }
 
-func TestHealtyBeanstalkdServer(t *testing.T) {
-	collector, err := NewBeanstalkdCollector(
-		mockHealthyBeanstalkd(),
-		CollectorOpts{
-			SystemMetrics: []string{"current_jobs_urgent_count", "current_jobs_ready_count"},
-			Tubes:         []string{"default", "anotherTube"},
-			TubeMetrics:   []string{"tube_current_jobs_urgent_count", "tube_current_jobs_ready_count"},
+func TestHealthyBeanstalkdServer(t *testing.T) {
+	tests := []struct {
+		allTubes           bool
+		tubes              []string
+		expectedNumMetrics int
+	}{
+		{
+			allTubes:           false,
+			tubes:              []string{"anotherTube"},
+			expectedNumMetrics: 4, // 2 system metrics, 2 tube metrics (1 label)
 		},
-		log.NewNopLogger(),
-	)
-	if err != nil {
-		t.Errorf("expected nil error, actual %v", err)
+		{
+			allTubes:           true,
+			tubes:              nil,
+			expectedNumMetrics: 6, // 2 system metrics, 4 tube metrics (2 + 2 labels)
+		},
 	}
 
-	ch := make(chan prometheus.Metric)
+	for _, tt := range tests {
+		collector, err := NewBeanstalkdCollector(
+			mockHealthyBeanstalkd(),
+			CollectorOpts{
+				SystemMetrics: []string{"current_jobs_urgent_count", "current_jobs_ready_count"},
+				AllTubes:      tt.allTubes,
+				Tubes:         tt.tubes,
+				TubeMetrics:   []string{"tube_current_jobs_urgent_count", "tube_current_jobs_ready_count"},
+			},
+			log.NewNopLogger(),
+		)
+		if err != nil {
+			t.Errorf("expected nil error, actual %v", err)
+		}
 
-	go func() {
-		defer close(ch)
-		collector.Collect(ch)
-	}()
+		ch := make(chan prometheus.Metric)
 
-	// "up" gauge
-	if expected, actual := 1., readGauge((<-ch).(prometheus.Gauge)); expected != actual {
-		t.Errorf("expected 'up' value %v, actual %v", expected, actual)
-	}
+		go func() {
+			defer close(ch)
+			collector.Collect(ch)
+		}()
 
-	// "total scrapes" counter
-	if expected, actual := 1., readCounter((<-ch).(prometheus.Counter)); expected != actual {
-		t.Errorf("expected 'totalScrapes' value %v, actual %v", expected, actual)
-	}
+		// "up" gauge
+		if expected, actual := 1., readGauge((<-ch).(prometheus.Gauge)); expected != actual {
+			t.Errorf("expected 'up' value %v, actual %v", expected, actual)
+		}
 
-	// system metrics & tube metrics gauges
-	expectedTotal := 6 // 2 system metrics, 4 tube metrics (2 + 2 labels)
-	actualTotal := 0
-	for range ch {
-		actualTotal++
-	}
-	if expectedTotal != actualTotal {
-		t.Errorf("expected %d metrics, actual %d", expectedTotal, actualTotal)
+		// "total scrapes" counter
+		if expected, actual := 1., readCounter((<-ch).(prometheus.Counter)); expected != actual {
+			t.Errorf("expected 'totalScrapes' value %v, actual %v", expected, actual)
+		}
+
+		// system metrics & tube metrics gauges
+		actualTotal := 0
+		for range ch {
+			actualTotal++
+		}
+		if tt.expectedNumMetrics != actualTotal {
+			t.Errorf("expected %d metrics, actual %d", tt.expectedNumMetrics, actualTotal)
+		}
 	}
 }
 
@@ -202,6 +237,12 @@ type mockBeanstalkdServer struct {
 	statsError      error
 	tubesStats      beanstalkd.ManyTubeStats
 	tubesStatsError error
+	listTubes       []string
+	listTubesError  error
+}
+
+func (m *mockBeanstalkdServer) ListTubes() ([]string, error) {
+	return m.listTubes, m.listTubesError
 }
 
 func (m *mockBeanstalkdServer) FetchStats() (beanstalkd.ServerStats, error) {
@@ -209,11 +250,17 @@ func (m *mockBeanstalkdServer) FetchStats() (beanstalkd.ServerStats, error) {
 }
 
 func (m *mockBeanstalkdServer) FetchTubesStats(tubes map[string]bool) (beanstalkd.ManyTubeStats, error) {
-	return m.tubesStats, m.tubesStatsError
+	tubesStats := make(beanstalkd.ManyTubeStats, len(tubes))
+	for tubeName := range tubes {
+		tubesStats[tubeName] = m.tubesStats[tubeName]
+	}
+	return tubesStats, m.tubesStatsError
 }
 
 func mockHealthyBeanstalkd() *mockBeanstalkdServer {
 	return &mockBeanstalkdServer{
+		listTubes:      []string{"default", "anotherTube"},
+		listTubesError: nil,
 		stats: beanstalkd.ServerStats{
 			"current-jobs-urgent": "10",
 			"current-jobs-ready":  "20",

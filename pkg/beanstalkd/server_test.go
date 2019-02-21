@@ -16,6 +16,25 @@ func TestNewServer(t *testing.T) {
 	}
 }
 
+func TestListTubes(t *testing.T) {
+	conn := &mockConnection{
+		tubes:              []string{"default", "one", "two", "three"},
+		listTubesCallCount: 0,
+	}
+	s := &Server{
+		Address:    "localhost:11300",
+		connection: conn,
+	}
+	actualTubes, err := s.ListTubes()
+	if err != nil {
+		t.Error(err)
+	}
+	expectedTubes := []string{"default", "one", "two", "three"}
+	if !reflect.DeepEqual(expectedTubes, actualTubes) {
+		t.Errorf("expected tubes %v, actual %v", expectedTubes, actualTubes)
+	}
+}
+
 func TestFetchStats(t *testing.T) {
 	conn := &mockConnection{
 		stats: map[string]string{
@@ -296,7 +315,6 @@ func TestConnect(t *testing.T) {
 
 type mockConnection struct {
 	stats              map[string]string
-	statsConnError     error
 	statsError         error
 	statsCallCount     int
 	tubes              []string

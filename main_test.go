@@ -13,6 +13,7 @@ func TestInitApplication(t *testing.T) {
 		"web.telemetry-path",
 		"beanstalkd.address",
 		"beanstalkd.systemMetrics",
+		"beanstalkd.allTubes",
 		"beanstalkd.tubes",
 		"beanstalkd.tubeMetrics",
 		"log.level",
