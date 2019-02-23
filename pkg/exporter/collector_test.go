@@ -65,15 +65,15 @@ func TestValidateDefaultFetchAllSystemMetrics(t *testing.T) {
 	if err != nil {
 		t.Errorf("expected nil error, actual %v", err)
 	}
-	if len(opts.SystemMetrics) != len(systemMetricsToStats) {
+	if len(opts.SystemMetrics) != len(descSystemMetrics) {
 		t.Errorf(
 			"expected system metrics length to be %v, actual %v",
-			len(systemMetricsToStats),
+			len(descSystemMetrics),
 			len(opts.SystemMetrics),
 		)
 	}
 	for _, m := range opts.SystemMetrics {
-		if _, found := systemMetricsToStats[m]; !found {
+		if _, found := descSystemMetrics[m]; !found {
 			t.Errorf("unexpected system metric: %v", m)
 		}
 	}
@@ -89,15 +89,15 @@ func TestValidateDefaultFetchAllTubeMetrics(t *testing.T) {
 		if err != nil {
 			t.Errorf("expected nil error, actual %v", err)
 		}
-		if len(opts.TubeMetrics) != len(tubeMetricsToStats) {
+		if len(opts.TubeMetrics) != len(descTubeMetrics) {
 			t.Errorf(
 				"expected tube metrics length to be %v, actual %v",
-				len(tubeMetricsToStats),
+				len(descTubeMetrics),
 				len(opts.TubeMetrics),
 			)
 		}
 		for _, m := range opts.TubeMetrics {
-			if _, found := tubeMetricsToStats[m]; !found {
+			if _, found := descTubeMetrics[m]; !found {
 				t.Errorf("unexpected tube metric: %v", m)
 			}
 		}
@@ -125,22 +125,22 @@ func TestNewBeanstalkdCollector(t *testing.T) {
 			beanstalkd:                  beanstalkd.NewServer("localhost:11300"),
 			opts:                        CollectorOpts{},
 			expectedError:               nil,
-			expectedSystemMetricsLength: len(systemMetricsToStats),
+			expectedSystemMetricsLength: len(descSystemMetrics),
 			expectedTubeMetricsLength:   0,
 		},
 		{
 			beanstalkd:                  beanstalkd.NewServer("localhost:11300"),
 			opts:                        CollectorOpts{Tubes: []string{"default"}},
 			expectedError:               nil,
-			expectedSystemMetricsLength: len(systemMetricsToStats),
-			expectedTubeMetricsLength:   len(tubeMetricsToStats),
+			expectedSystemMetricsLength: len(descSystemMetrics),
+			expectedTubeMetricsLength:   len(descTubeMetrics),
 		},
 		{
 			beanstalkd:                  beanstalkd.NewServer("localhost:11300"),
 			opts:                        CollectorOpts{AllTubes: true},
 			expectedError:               nil,
-			expectedSystemMetricsLength: len(systemMetricsToStats),
-			expectedTubeMetricsLength:   len(tubeMetricsToStats),
+			expectedSystemMetricsLength: len(descSystemMetrics),
+			expectedTubeMetricsLength:   len(descTubeMetrics),
 		},
 	}
 
@@ -230,6 +230,56 @@ func TestHealthyBeanstalkdServer(t *testing.T) {
 	}
 }
 
+func TestGetTubesToScrape(t *testing.T) {
+	tests := []struct {
+		opts          CollectorOpts
+		beanstalkd    BeanstalkdServer
+		expectedTubes []string
+		expectedError error
+	}{
+		// We expect a healthy beanstalkd server to return all tubes
+		// when we're fetching all tubes.
+		{
+			opts: CollectorOpts{
+				AllTubes: true,
+			},
+			beanstalkd:    mockHealthyBeanstalkd(),
+			expectedTubes: []string{"default", "anotherTube"},
+			expectedError: nil,
+		},
+		// We expect only specific tubes when we're only interested
+		// in specific tubes.
+		{
+			opts: CollectorOpts{
+				Tubes: []string{"anotherTube"},
+			},
+			beanstalkd:    nil, // Not needed as we don't fetch the tubes.
+			expectedTubes: []string{"anotherTube"},
+			expectedError: nil,
+		},
+		// We expect an error when the beanstalkd server is not healthy
+		{
+			opts: CollectorOpts{
+				AllTubes: true,
+			},
+			beanstalkd:    mockUnhealthyBeanstalkd(),
+			expectedTubes: nil,
+			expectedError: fmt.Errorf("list tubes error"),
+		},
+	}
+
+	for _, tt := range tests {
+		collector := BeanstalkdCollector{
+			opts:       tt.opts,
+			beanstalkd: tt.beanstalkd,
+		}
+		actualTubes, _ := collector.getTubesToScrape()
+		if !reflect.DeepEqual(tt.expectedTubes, actualTubes) {
+			t.Errorf("expected %v tubes, actual %v", tt.expectedTubes, actualTubes)
+		}
+	}
+}
+
 /********************     MOCKS     ********************/
 
 type mockBeanstalkdServer struct {
@@ -283,5 +333,13 @@ func mockHealthyBeanstalkd() *mockBeanstalkdServer {
 			},
 		},
 		tubesStatsError: nil,
+	}
+}
+
+func mockUnhealthyBeanstalkd() *mockBeanstalkdServer {
+	return &mockBeanstalkdServer{
+		listTubesError:  fmt.Errorf("list tubes error"),
+		statsError:      fmt.Errorf("stats error"),
+		tubesStatsError: fmt.Errorf("tubes stats error"),
 	}
 }

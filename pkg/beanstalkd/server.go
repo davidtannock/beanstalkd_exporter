@@ -76,9 +76,6 @@ func (s *Server) FetchStats() (ServerStats, error) {
 // FetchTubesStats returns the tube stats from beanstalkd.
 // The result is a map of stats per tube.
 func (s *Server) FetchTubesStats(tubes map[string]bool) (ManyTubeStats, error) {
-	if len(tubes) == 0 {
-		return nil, nil
-	}
 	c, err := s.connect()
 	if err != nil {
 		return nil, err

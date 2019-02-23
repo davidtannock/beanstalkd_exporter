@@ -48,7 +48,7 @@ type BeanstalkdCollector struct {
 func (opts *CollectorOpts) validate() (err error) {
 	// Error on any invalid system metrics.
 	for _, m := range opts.SystemMetrics {
-		if _, ok := systemMetricsToStats[m]; !ok {
+		if _, ok := descSystemMetrics[m]; !ok {
 			err = fmt.Errorf("unknown system metric: %v", m)
 			return
 		}
@@ -56,7 +56,7 @@ func (opts *CollectorOpts) validate() (err error) {
 
 	// Error on any invalid tube metrics.
 	for _, m := range opts.TubeMetrics {
-		if _, ok := tubeMetricsToStats[m]; !ok {
+		if _, ok := descTubeMetrics[m]; !ok {
 			err = fmt.Errorf("unknown tube metric: %v", m)
 			return
 		}
@@ -71,20 +71,16 @@ func (opts *CollectorOpts) validate() (err error) {
 
 	// If there are no system metrics, fetch all of them.
 	if len(opts.SystemMetrics) == 0 {
-		var systemMetrics []string
-		for m := range systemMetricsToStats {
-			systemMetrics = append(systemMetrics, m)
+		for m := range descSystemMetrics {
+			opts.SystemMetrics = append(opts.SystemMetrics, m)
 		}
-		opts.SystemMetrics = systemMetrics
 	}
 
 	// If there are tubes but no metrics, fetch all of them.
 	if (opts.AllTubes || len(opts.Tubes) > 0) && len(opts.TubeMetrics) == 0 {
-		var tubeMetrics []string
-		for m := range tubeMetricsToStats {
-			tubeMetrics = append(tubeMetrics, m)
+		for m := range descTubeMetrics {
+			opts.TubeMetrics = append(opts.TubeMetrics, m)
 		}
-		opts.TubeMetrics = tubeMetrics
 	}
 
 	err = nil
@@ -105,11 +101,11 @@ func NewBeanstalkdCollector(beanstalkd BeanstalkdServer, opts CollectorOpts, log
 
 	systemMetrics := make(map[string]prometheus.Gauge, len(opts.SystemMetrics))
 	for _, metric := range opts.SystemMetrics {
-		stat := systemMetricsToStats[metric]
+		stat := descSystemMetrics[metric].stat
 		systemMetrics[stat] = prometheus.NewGauge(prometheus.GaugeOpts{
 			Namespace: namespace,
 			Name:      metric,
-			Help:      systemStatsHelp[stat],
+			Help:      descSystemMetrics[metric].help,
 		})
 	}
 
@@ -118,11 +114,11 @@ func NewBeanstalkdCollector(beanstalkd BeanstalkdServer, opts CollectorOpts, log
 		tubeLabels := []string{"tube"}
 		tubesMetrics = make(map[string]*prometheus.GaugeVec, len(opts.TubeMetrics))
 		for _, metric := range opts.TubeMetrics {
-			stat := tubeMetricsToStats[metric]
+			stat := descTubeMetrics[metric].stat
 			tubesMetrics[stat] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 				Namespace: namespace,
 				Name:      metric,
-				Help:      tubeStatsHelp[stat],
+				Help:      descTubeMetrics[metric].help,
 			}, tubeLabels)
 		}
 	}
@@ -197,55 +193,80 @@ func (b *BeanstalkdCollector) scrape() {
 
 	// We've done another scrape.
 	b.totalScrapes.Inc()
+
+	// So far beanstalkd is up.
 	b.up.Set(1)
 
 	// Fetch the system stats from beanstalkd.
-	systemStats, err := b.beanstalkd.FetchStats()
+	err = b.scrapeSystemStats()
 	if err != nil {
 		return
+	}
+
+	// Fetch the tubes stats from beanstalkd.
+	err = b.scrapeTubesStats()
+	if err != nil {
+		return
+	}
+}
+
+func (b *BeanstalkdCollector) scrapeSystemStats() error {
+	systemStats, err := b.beanstalkd.FetchStats()
+	if err != nil {
+		return err
 	}
 	for stat, value := range systemStats {
 		if _, ok := b.systemMetrics[stat]; ok {
 			v, err := strconv.ParseInt(value, 10, 64)
 			if err != nil {
-				return
+				return err
 			}
 			b.systemMetrics[stat].Set(float64(v))
 		}
 	}
+	return nil
+}
 
-	// Fetch the tubes stats from beanstalkd.
-	tubeNames := b.opts.Tubes
-	if b.opts.AllTubes {
-		tubeNames, err = b.beanstalkd.ListTubes()
-		if err != nil {
-			return
-		}
-	}
-	if len(tubeNames) == 0 {
+func (b *BeanstalkdCollector) scrapeTubesStats() (err error) {
+	var tubeNames []string
+	tubeNames, err = b.getTubesToScrape()
+	if err != nil {
 		return
 	}
 	tubes := make(map[string]bool)
 	for _, tube := range tubeNames {
 		tubes[tube] = true
 	}
-	manyTubesStats, err := b.beanstalkd.FetchTubesStats(tubes)
+	var manyTubesStats = make(beanstalkd.ManyTubeStats)
+	manyTubesStats, err = b.beanstalkd.FetchTubesStats(tubes)
 	if err != nil {
 		return
 	}
 	for tube, statsOrErr := range manyTubesStats {
 		if statsOrErr.Err != nil {
 			err = statsOrErr.Err
-			return
 		}
 		for stat, value := range statsOrErr.Stats {
 			if _, ok := b.tubesMetrics[stat]; ok {
-				v, err := strconv.ParseInt(value, 10, 64)
-				if err != nil {
-					return
+				var v int64
+				v, err = strconv.ParseInt(value, 10, 64)
+				if err == nil {
+					b.tubesMetrics[stat].WithLabelValues(tube).Set(float64(v))
 				}
-				b.tubesMetrics[stat].WithLabelValues(tube).Set(float64(v))
 			}
 		}
 	}
+	return
+}
+
+func (b *BeanstalkdCollector) getTubesToScrape() ([]string, error) {
+	var err error
+	tubeNames := b.opts.Tubes
+	if b.opts.AllTubes {
+		tubeNames, err = b.beanstalkd.ListTubes()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return tubeNames, nil
 }
