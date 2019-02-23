@@ -155,7 +155,7 @@ func TestFetchTubesStats(t *testing.T) {
 			num:                        "1) ",
 			tubes:                      nil,
 			listTubesError:             nil,
-			expectedListTubesCallCount: 0,
+			expectedListTubesCallCount: 1,
 			expectedTubesStats:         nil,
 		},
 		// We expect empty tubes stats when the tubes don't exist.
