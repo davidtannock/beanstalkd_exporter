@@ -8,7 +8,7 @@ before_script:
   - ./cc-test-reporter before-build
 
 script:
- - go test -coverprofile c.out ./...
+  - go test -coverprofile c.out ./...
 
- after_script:
+after_script:
   - ./cc-test-reporter after-build -t gocov --exit-code $TRAVIS_TEST_RESULT
