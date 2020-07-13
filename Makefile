@@ -33,7 +33,7 @@ vet:
 .PHONY: staticcheck
 staticcheck: $(STATICCHECK)
 	@echo ">> running staticcheck"
-	$(STATICCHECK) -ignore "$(STATICCHECK_IGNORE)" $(pkgs)
+	$(STATICCHECK) $(pkgs)
 
 .PHONY: dep
 dep: $(DEP)

@@ -78,7 +78,7 @@ func TestFetchStatsConnectError(t *testing.T) {
 	if err == nil {
 		t.Errorf("expected a connection error, but got nil")
 	}
-	expectedLog := fmt.Sprint("Can't connect to beanstalkd: Bad network")
+	expectedLog := "Can't connect to beanstalkd: Bad network"
 	if logger.lastErrorf != expectedLog {
 		t.Errorf("expected log error %v, actual %v", expectedLog, logger.lastErrorf)
 	}
@@ -265,7 +265,7 @@ func TestFetchTubesStatsConnectError(t *testing.T) {
 	if err == nil {
 		t.Errorf("expected a connection error, but got nil")
 	}
-	expectedLog := fmt.Sprint("Can't connect to beanstalkd: Bad network")
+	expectedLog := "Can't connect to beanstalkd: Bad network"
 	if logger.lastErrorf != expectedLog {
 		t.Errorf("expected log error %v, actual %v", expectedLog, logger.lastErrorf)
 	}
