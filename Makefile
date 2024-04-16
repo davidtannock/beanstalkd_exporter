@@ -1,70 +1,43 @@
-GO           ?= go
-GOFMT        ?= $(GO)fmt
-GOTEST        = $(GO) test
-GOBUILD       = $(GO) build
-GOCLEAN       = $(GO) clean
-FIRST_GOPATH := $(firstword $(subst :, ,$(shell $(GO) env GOPATH)))
-STATICCHECK  := $(FIRST_GOPATH)/bin/staticcheck
-DEP          := $(FIRST_GOPATH)/bin/dep
-pkgs          = ./...
-BINARY_NAME   = beanstalkd_exporter
-
-DOCKER_IMAGE_NAME ?= beanstalkd-exporter
-DOCKER_IMAGE_TAG  ?= $(subst /,-,$(shell git rev-parse --abbrev-ref HEAD))
+PKGS               = ./...
+BINARY_NAME        = beanstalkd_exporter
+DOCKER_IMAGE_NAME ?= beanstalkd_exporter
+DOCKER_IMAGE_TAG  ?= $(shell git describe --tags --abbrev=0)
 
 .PHONY: all
-all: style staticcheck dep clean test build
+all: dep vet staticcheck lint clean test build
 
-.PHONY: style
-style:
-	@echo ">> checking code style"
-	! $(GOFMT) -d $$(find . -path ./vendor -prune -o -name '*.go' -print) | grep '^'
-
-.PHONY: format
-format:
-	@echo ">> formatting code"
-	$(GO) fmt $(pkgs)
+.PHONY: fmt
+fmt:
+	go fmt $(PKGS)
 
 .PHONY: vet
 vet:
-	@echo ">> vetting code"
-	$(GO) vet $(pkgs)
+	go vet $(PKGS)
 
 .PHONY: staticcheck
-staticcheck: $(STATICCHECK)
-	@echo ">> running staticcheck"
-	$(STATICCHECK) $(pkgs)
+staticcheck:
+	staticcheck $(PKGS)
+
+.PHONY: lint
+lint:
+	golangci-lint run
 
 .PHONY: dep
-dep: $(DEP)
-	@echo ">> running dependency check"
-	$(DEP) ensure
+dep:
+	go mod download
 
 .PHONY: test
 test:
-	@echo ">> running tests"
-	$(GOTEST) ./...
+	go test $(PKGS)
 
 .PHONY: build
 build:
-	@echo ">> building binaries"
-	$(GOBUILD) -o $(BINARY_NAME) -v
+	go build -o $(BINARY_NAME) -v
 
 .PHONY: clean
 clean:
-	@echo ">> cleaning build files"
-	$(GOCLEAN)
+	go clean
 	rm -f $(BINARY_NAME)
-
-.PHONY: $(STATICCHECK)
-$(STATICCHECK):
-	@echo ">> running static check"
-	test -f $(STATICCHECK) || GOOS= GOARCH= $(GO) get -u honnef.co/go/tools/cmd/staticcheck
-
-.PHONY: $(DEP)
-$(DEP):
-	@echo ">> installing dep"
-	test -f $(DEP) || curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 
 .PHONY: docker
 docker:

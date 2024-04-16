@@ -1,7 +1,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/davidtannock/beanstalkd_exporter)][goreportcard]
 [![Maintainability](https://api.codeclimate.com/v1/badges/5653f08f506a6f02d786/maintainability)][codeclimate]
 [![Test Coverage](https://api.codeclimate.com/v1/badges/5653f08f506a6f02d786/test_coverage)][codecoverage]
-[![Build Status](https://travis-ci.org/davidtannock/beanstalkd_exporter.png?branch=master)][travisci]
+[![Build Status](https://travis-ci.org/davidtannock/beanstalkd_exporter.png?branch=main)][travisci]
 
 [goreportcard]: https://goreportcard.com/report/github.com/davidtannock/beanstalkd_exporter
 [codeclimate]: https://codeclimate.com/github/davidtannock/beanstalkd_exporter/maintainability
@@ -10,7 +10,7 @@
 
 # Beanstalkd Exporter for Prometheus
 
-This is a simple server that scrapes [beanstalkd][beanstalkd] stats and exports them via HTTP
+This is a simple server that scrapes [beanstalkd][beanstalkd] stats and exports them via http
 for [Prometheus][prometheus] consumption.
 
 [beanstalkd]: http://kr.github.io/beanstalkd/
@@ -29,10 +29,6 @@ Help on flags:
 ```bash
 $ ./beanstalkd_exporter --help
 ```
-
-For more information check the [source code documentation][gdocs].
-
-[gdocs]: http://godoc.org/github.com/davidtannock/beanstalkd_exporter
 
 ## Usage
 
@@ -113,7 +109,7 @@ Will fetch only 2 system-level metrics, and 1 metric labelled for the `default` 
 
 The full list of metrics is available on [this page][metrics].
 
-[metrics]: https://github.com/davidtannock/beanstalkd_exporter/blob/master/pkg/exporter/metrics.go
+[metrics]: https://github.com/davidtannock/beanstalkd_exporter/blob/main/internal/exporter/metrics.go
 
 ## Development
 
@@ -129,6 +125,15 @@ $ make build
 $ make test
 ```
 
+## Version 2
+
+Version 2 was an exercise in learning Nix (https://nixos.org/), specifically:
+* Nix development environments
+* Building go projects with Nix (thank you https://github.com/nix-community/gomod2nix)
+* Nix flakes
+
+The other [changes](https://github.com/davidtannock/beanstalkd_exporter/blob/main/CHANGELOG.mod) are mainly related to removing legacy dependencies. The cli command is largely unchanged, and nix is not necessary to build the executable (see [Makefile](https://github.com/davidtannock/beanstalkd_exporter/blob/main/Makefile)).
+
 ## License
 
-Apache License 2.0, see [LICENSE](https://github.com/davidtannock/beanstalkd_exporter/blob/master/LICENSE).
+Apache License 2.0, see [LICENSE](https://github.com/davidtannock/beanstalkd_exporter/blob/main/LICENSE).

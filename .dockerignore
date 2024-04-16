@@ -1,3 +1,8 @@
 .git
 .travis.yml
 beanstalkd_exporter
+CHANGELOG.md
+*.nix
+flake.lock
+gomod2nix.toml
+README.md
