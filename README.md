@@ -132,7 +132,7 @@ Version 2 was an exercise in learning Nix (https://nixos.org/), specifically:
 * Building go projects with Nix (thank you https://github.com/nix-community/gomod2nix)
 * Nix flakes
 
-The other [changes](https://github.com/davidtannock/beanstalkd_exporter/blob/main/CHANGELOG.mod) are mainly related to removing legacy dependencies. The cli command is largely unchanged, and nix is not necessary to build the executable (see [Makefile](https://github.com/davidtannock/beanstalkd_exporter/blob/main/Makefile)).
+The other [changes](https://github.com/davidtannock/beanstalkd_exporter/blob/main/CHANGELOG.md) are mainly related to removing legacy dependencies. The cli command is largely unchanged, and nix is not necessary to build the executable (see [Makefile](https://github.com/davidtannock/beanstalkd_exporter/blob/main/Makefile)).
 
 ## License
 
