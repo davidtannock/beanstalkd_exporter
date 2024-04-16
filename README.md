@@ -1,12 +1,10 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/davidtannock/beanstalkd_exporter)][goreportcard]
 [![Maintainability](https://api.codeclimate.com/v1/badges/5653f08f506a6f02d786/maintainability)][codeclimate]
 [![Test Coverage](https://api.codeclimate.com/v1/badges/5653f08f506a6f02d786/test_coverage)][codecoverage]
-[![Build Status](https://travis-ci.org/davidtannock/beanstalkd_exporter.png?branch=main)][travisci]
 
 [goreportcard]: https://goreportcard.com/report/github.com/davidtannock/beanstalkd_exporter
 [codeclimate]: https://codeclimate.com/github/davidtannock/beanstalkd_exporter/maintainability
 [codecoverage]: https://codeclimate.com/github/davidtannock/beanstalkd_exporter/test_coverage
-[travisci]: https://travis-ci.org/davidtannock/beanstalkd_exporter
 
 # Beanstalkd Exporter for Prometheus
 
