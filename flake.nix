@@ -3,7 +3,9 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+
     flake-utils.url = "github:numtide/flake-utils";
+
     gomod2nix = {
       url = "github:nix-community/gomod2nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -28,9 +30,29 @@
       in
       {
         formatter = pkgs.nixpkgs-fmt;
-        packages.default = callPackage ./. {
-          inherit (gomod2nix.legacyPackages.${system}) buildGoApplication;
+
+        packages = {
+          default = callPackage ./. {
+            inherit (gomod2nix.legacyPackages.${system}) buildGoApplication;
+          };
+
+          docker =
+            let
+              beanstalkd_exporter = self.packages.${system}.default;
+            in
+            pkgs.dockerTools.buildLayeredImage {
+              name = beanstalkd_exporter.pname;
+              tag = beanstalkd_exporter.version;
+              contents = [ beanstalkd_exporter ];
+              config = {
+                Cmd = [ "/bin/beanstalkd_exporter" ];
+                WorkingDir = "/";
+              };
+            };
         };
+
+        apps.default = flake-utils.lib.mkApp { drv = self.packages.${system}.default; };
+
         devShells.default = callPackage ./shell.nix {
           inherit (gomod2nix.legacyPackages.${system}) mkGoEnv gomod2nix;
         };
