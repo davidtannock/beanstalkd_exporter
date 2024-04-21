@@ -1,2 +1,5 @@
+.env
+.direnv
 /result
 /beanstalkd_exporter
+

@@ -24,6 +24,8 @@ lint:
 
 .PHONY: dep
 dep:
+	go install honnef.co/go/tools/cmd/staticcheck@latest
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.57.2
 	go mod download
 
 .PHONY: test
