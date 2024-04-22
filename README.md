@@ -19,13 +19,13 @@ for [Prometheus][prometheus] consumption.
 To run it:
 
 ```bash
-$ ./beanstalkd_exporter [flags]
+./beanstalkd_exporter [flags]
 ```
 
 Help on flags:
 
 ```bash
-$ ./beanstalkd_exporter --help
+./beanstalkd_exporter --help
 ```
 
 ## Usage
@@ -33,7 +33,7 @@ $ ./beanstalkd_exporter --help
 Specify the address of the beanstalkd instance using the `--beanstalkd.address` flag. For example,
 
 ```bash
-$ ./beanstalkd_exporter --beanstalkd.address=127.0.0.1:11300
+./beanstalkd_exporter --beanstalkd.address=127.0.0.1:11300
 ```
 
 The default address is `localhost:11300`.
@@ -43,19 +43,19 @@ The default address is `localhost:11300`.
 Start a beanstalkd instance with the following docker command.
 
 ```bash
-$ docker run -d -p 11300:11300 --name beanstalkd dtannock/beanstalkd:latest
+docker run -d -p 11300:11300 --name beanstalkd dtannock/beanstalkd:latest
 ```
 
 Run beanstalkd_exporter. The default flag values should be able to connect to the running beanstalkd instance.
 
 ```bash
-$ ./beanstalkd_exporter
+./beanstalkd_exporter
 ```
 
 Fetch the metrics for Prometheus.
 
 ```bash
-$ curl -s http://localhost:8080/metrics
+curl -s http://localhost:8080/metrics
 ```
 
 ### Failed Scrapes
@@ -66,10 +66,10 @@ You can see this in practice by starting/stopping the docker container, and fetc
 then find the `beanstalkd_up` value.
 
 ```bash
-$ docker stop beanstalkd
-$ curl -s http://localhost:8080/metrics | grep beanstalkd_up
-$ docker start beanstalkd
-$ curl -s http://localhost:8080/metrics | grep beanstalkd_up
+docker stop beanstalkd
+curl -s http://localhost:8080/metrics | grep beanstalkd_up
+docker start beanstalkd
+curl -s http://localhost:8080/metrics | grep beanstalkd_up
 ```
 
 [failedscrapes]: https://prometheus.io/docs/instrumenting/writing_exporters/#failed-scrapes
@@ -84,20 +84,20 @@ To collect tube-level stats, you must use either the `--beanstalkd.allTubes` or 
 `--beanstalkd.allTubes` will collect metrics for all tubes.
 
 ```bash
-$ ./beanstalkd_exporter --beanstalkd.allTubes
+./beanstalkd_exporter --beanstalkd.allTubes
 ```
 
 `--beanstalkd.tubes` will collect metrics for one or more specific tubes.
 
 ```bash
-$ ./beanstalkd_exporter --beanstalkd.tubes=default,anotherTube
+./beanstalkd_exporter --beanstalkd.tubes=default,anotherTube
 ```
 
 The metrics collected from beanstalkd can be filtered using the `--beanstalkd.systemMetrics` and
 `--beanstalkd.tubeMetrics` flags. For example,
 
 ```bash
-$ ./beanstalkd_exporter \
+./beanstalkd_exporter \
     --beanstalkd.systemMetrics=current_jobs_urgent_count,current_jobs_ready_count \
     --beanstalkd.tubes=default \
     --beanstalkd.tubeMetrics=tube_current_jobs_ready_count
@@ -111,23 +111,30 @@ The full list of metrics is available on [this page][metrics].
 
 ## Development
 
+### Dev dependencies
+
+```bash
+make devtools
+```
+
 ### Building
 
 ```bash
-$ make build
+make build
 ```
 
 ### Testing
 
 ```bash
-$ make test
+make test
 ```
 
 ## Version 2
 
-Version 2 was an exercise in learning Nix (https://nixos.org/), specifically:
+Version 2 was an exercise in learning Nix (<https://nixos.org/>), specifically:
+
 * Nix development environments
-* Building go projects with Nix (thank you https://github.com/nix-community/gomod2nix)
+* Building go projects with Nix (thank you <https://github.com/nix-community/gomod2nix>)
 * Nix flakes
 
 The other [changes](https://github.com/davidtannock/beanstalkd_exporter/blob/main/CHANGELOG.md) are mainly related to removing legacy dependencies. The cli command is largely unchanged, and nix is not necessary to build the executable (see [Makefile](https://github.com/davidtannock/beanstalkd_exporter/blob/main/Makefile)).

@@ -6,6 +6,11 @@ DOCKER_IMAGE_TAG  ?= $(shell git describe --tags --abbrev=0)
 .PHONY: all
 all: dep vet staticcheck lint clean test build
 
+.PHONY: devtools
+devtools:
+	go install honnef.co/go/tools/cmd/staticcheck@v0.4.7
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.57.2
+
 .PHONY: fmt
 fmt:
 	go fmt $(PKGS)
@@ -24,8 +29,6 @@ lint:
 
 .PHONY: dep
 dep:
-	go install honnef.co/go/tools/cmd/staticcheck@latest
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.57.2
 	go mod download
 
 .PHONY: test
