@@ -22,5 +22,7 @@ in
       pkgs.gotools
       pkgs.go-tools
       pkgs.golangci-lint
+      pkgs.delve
     ];
+    hardeningDisable = ["fortify"]; # https://wiki.nixos.org/wiki/Go#Using_cgo_on_NixOS
   }
