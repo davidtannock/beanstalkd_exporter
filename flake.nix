@@ -13,49 +13,46 @@
     };
   };
 
-  outputs =
-    { self
-    , nixpkgs
-    , flake-utils
-    , gomod2nix
-    }:
-    (flake-utils.lib.eachDefaultSystem
-      (system:
-      let
+  outputs = {
+    self,
+    nixpkgs,
+    flake-utils,
+    gomod2nix,
+  }:
+    flake-utils.lib.eachDefaultSystem (
+      system: let
         pkgs = nixpkgs.legacyPackages.${system};
 
         # The current default sdk for macOS fails to compile go projects, so we use a newer one for now.
         # This has no effect on other platforms.
         callPackage = pkgs.darwin.apple_sdk_11_0.callPackage or pkgs.callPackage;
-      in
-      {
-        formatter = pkgs.nixpkgs-fmt;
+      in {
+        formatter = pkgs.alejandra;
 
         packages = {
           default = callPackage ./. {
             inherit (gomod2nix.legacyPackages.${system}) buildGoApplication;
           };
 
-          docker =
-            let
-              beanstalkd_exporter = self.packages.${system}.default;
-            in
+          docker = let
+            beanstalkd_exporter = self.packages.${system}.default;
+          in
             pkgs.dockerTools.buildLayeredImage {
               name = beanstalkd_exporter.pname;
               tag = beanstalkd_exporter.version;
-              contents = [ beanstalkd_exporter ];
+              contents = [beanstalkd_exporter];
               config = {
-                Cmd = [ "/bin/beanstalkd_exporter" ];
+                Cmd = ["/bin/beanstalkd_exporter"];
                 WorkingDir = "/";
               };
             };
         };
 
-        apps.default = flake-utils.lib.mkApp { drv = self.packages.${system}.default; };
+        apps.default = flake-utils.lib.mkApp {drv = self.packages.${system}.default;};
 
         devShells.default = callPackage ./shell.nix {
           inherit (gomod2nix.legacyPackages.${system}) mkGoEnv gomod2nix;
         };
-      })
+      }
     );
 }
